@@ -214,18 +214,25 @@ Create `.env`:
 
 ``` bash
 python -m venv venv
+
 venv\Scripts\activate
+
 pip install fastapi uvicorn pydantic python-dotenv 
 langchain langchain-classic langchain-openai 
 langchain-community chromadb pypdf psycopg2 
 python-jose[cryptography] passlib[bcrypt] 
 pydantic[email] sqlalchemy
+
+Create 'chatbot_db' database in Postgres DB (PGAdmin)
+
 python create_tables.py
-python rag/ingest.py
+
+python rag.ingest.py
+
 uvicorn app:app --reload
 ```
 
-Open:
+Open in Browser:
 
 http://127.0.0.1:8000/docs
 
