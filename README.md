@@ -52,7 +52,7 @@ PDF Knowledge Base
 ------------------------------------------------------------------------
 
 # 📁 Actual Project Structure
-
+```text
 ai_rag_chatbot_backend/
 │
 ├── app.py                  # Main FastAPI application
@@ -105,7 +105,7 @@ ai_rag_chatbot_backend/
 │
 ├── venv/                   # Python virtual environment
 └── __pycache__/
-
+```
 
 ------------------------------------------------------------------------
 
