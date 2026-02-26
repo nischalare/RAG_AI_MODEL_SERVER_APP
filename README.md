@@ -221,7 +221,8 @@ pip install fastapi uvicorn pydantic python-dotenv
 langchain langchain-classic langchain-openai 
 langchain-community chromadb pypdf psycopg2 
 python-jose[cryptography] passlib[bcrypt] 
-pydantic[email] sqlalchemy loguru bcrypt slowapi
+pydantic[email] sqlalchemy loguru bcrypt==4.3.0
+ slowapi 
 
 Create 'chatbot_db' database in Postgres DB (PGAdmin)
 
