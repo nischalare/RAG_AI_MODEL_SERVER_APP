@@ -227,7 +227,7 @@ Create 'chatbot_db' database in Postgres DB (PGAdmin)
 
 python create_tables.py
 
-python rag.ingest.py
+python -m rag.ingest
 
 uvicorn app:app --reload
 ```
