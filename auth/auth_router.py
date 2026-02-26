@@ -1,23 +1,14 @@
 """
 auth_router.py
 
-This file handles:
-
-1. User Registration
-2. User Login
-3. JWT Token Generation
-
-It follows clean architecture principles:
-- Password hashing is handled in auth.security
-- JWT creation is handled in auth.jwt
-- Database access via dependency injection
+Updated to support Swagger UI "Authorize" flow using Form Data.
 """
 
 # =====================================================
 # IMPORTS
 # =====================================================
-
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm  # CRITICAL: For Swagger compatibility
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 
@@ -28,10 +19,24 @@ from auth.jwt import create_token
 
 
 # =====================================================
+# Pydantic Request / Response Schemas
+# =====================================================
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class AuthResponse(BaseModel):
+    """Standard OAuth2 response format for access tokens."""
+    access_token: str
+    token_type: str = "bearer"
+
+
+# =====================================================
 # ROUTER CONFIGURATION
 # =====================================================
 
-# All endpoints in this file will start with /auth
+# Defined BEFORE the endpoints to avoid NameError
 router = APIRouter(
     prefix="/auth",
     tags=["Authentication"]
@@ -39,52 +44,10 @@ router = APIRouter(
 
 
 # =====================================================
-# Pydantic Request / Response Schemas
-# =====================================================
-
-class RegisterRequest(BaseModel):
-    """
-    Schema for user registration request.
-
-    EmailStr automatically validates email format.
-    """
-    email: EmailStr
-    password: str
-
-
-class LoginRequest(BaseModel):
-    """
-    Schema for login request.
-    """
-    email: EmailStr
-    password: str
-
-
-class AuthResponse(BaseModel):
-    """
-    Schema for login response.
-
-    Returns:
-    - JWT access token
-    - Token type (Bearer)
-    """
-    access_token: str
-    token_type: str = "bearer"
-
-
-# =====================================================
 # DATABASE DEPENDENCY
 # =====================================================
 
 def get_db():
-    """
-    Provides a database session to endpoints.
-
-    Why we use this:
-    - Ensures DB connection is properly opened
-    - Automatically closes after request
-    - Prevents connection leaks
-    """
     db = SessionLocal()
     try:
         yield db
@@ -101,37 +64,22 @@ def register_user(
     request: RegisterRequest,
     db: Session = Depends(get_db)
 ):
-    """
-    Registers a new user.
-
-    Steps:
-    1. Check if user already exists
-    2. Hash password securely
-    3. Store user in database
-    """
-
     # Check if email already exists
-    existing_user = (
-        db.query(User)
-        .filter(User.email == request.email)
-        .first()
-    )
+    existing_user = db.query(User).filter(User.email == request.email).first()
 
     if existing_user:
-        # Prevent duplicate accounts
         raise HTTPException(
             status_code=400,
             detail="User already exists"
         )
 
-    # Create new user instance
+    # Create new user with hashed password
     new_user = User(
         email=request.email,
-        password=hash_password(request.password),  # Secure hashing
-        role="USER"  # Default role
+        password=hash_password(request.password),
+        role="USER"
     )
 
-    # Save to database
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -140,48 +88,45 @@ def register_user(
 
 
 # =====================================================
-# LOGIN ENDPOINT
+# LOGIN ENDPOINT (FIXED FOR SWAGGER)
 # =====================================================
 
 @router.post("/login", response_model=AuthResponse)
 def login_user(
-    request: LoginRequest,
+    # Changed from 'LoginRequest' to 'OAuth2PasswordRequestForm'
+    # This allows the Swagger "Authorize" popup to work correctly
+    request: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
     """
     Authenticates user and returns JWT token.
-
-    Steps:
-    1. Find user by email
-    2. Verify password
-    3. Generate JWT token
+    Swagger UI sends data as form-data, mapping email to 'username'.
     """
 
-    # Fetch user from DB
+    # Fetch user from DB using request.username (which holds the email)
     user = (
         db.query(User)
-        .filter(User.email == request.email)
+        .filter(User.email == request.username)
         .first()
     )
 
-    # If user not found OR password invalid
-    if not user or not verify_password(
-        request.password,
-        user.password
-    ):
+    # Verify user exists and password is correct
+    if not user or not verify_password(request.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password"
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Create JWT token
+    # Create JWT token with standard claims
     token = create_token({
-        "sub": user.email,      # Subject (standard JWT field)
-        "user_id": user.id,     # Custom claim
-        "role": user.role       # Used for role-based access
+        "sub": user.email,      
+        "user_id": user.id,     
+        "role": user.role       
     })
 
     return {
         "access_token": token,
         "token_type": "bearer"
     }
+
