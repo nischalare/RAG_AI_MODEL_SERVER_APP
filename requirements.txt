@@ -1,1 +1,33 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
 
+# LangChain stack
+langchain
+langchain-classic
+langchain-openai
+langchain-community
+
+# Vector DB
+chromadb
+
+# PDF Loader
+pypdf
+
+# Database
+psycopg2
+sqlalchemy
+
+# Authentication
+python-jose[cryptography]
+passlib[bcrypt]
+bcrypt==4.0.1
+pydantic[email]
+python-multipart
+
+# Logging
+loguru
+
+# Rate limiting
+slowapi
